@@ -33,8 +33,6 @@ public class ConnectedThread extends Thread {
         byte[] buffer = new byte[1024];  // buffer store for the stream
         int bytes = 0; // bytes returned from read()
 
-        // Keep listening to the InputStream until an exception occurs
-
         while(true){
             try {
                 // Read from the InputStream
@@ -45,10 +43,6 @@ public class ConnectedThread extends Thread {
                     currentSession.receiveData(received);
                 }
 
-
-
-                // Send the obtained bytes to the UI activity
-                //mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer).sendToTarget();
             } catch (IOException e) {
                 Log.e("CONNECTION", "CANT RECEIVE BYTES");
                 break;
