@@ -1,110 +1,72 @@
 package sirs.ist.pt.secureaccess.security;
 
 import java.math.BigInteger;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.util.HashMap;
 
+import javax.crypto.interfaces.DHPrivateKey;
+import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
-import javax.crypto.spec.DHPublicKeySpec;
 
 public class DiffieHellman {
-
-    public final static int pValue = 47;
-
-    public final static int gValue = 71;
-
-    public final static int XaValue = 9;
-
-    public final static int XbValue = 14;
+    //era tarde e nao me apeteceu ver como fazer enumerados...
+    public static final String P_PRIME = "P_PRIME";
+    public static final String X_SECRET = "X_SECRET";
+    public static final String Y_GENERATED = "Y_GENERATED";
+    public static final String G_BASE = "G_BASE";
 
     public static void main(String[] args) throws Exception {
-        /*BigInteger p = new BigInteger(Integer.toString(pValue));
-        BigInteger g = new BigInteger(Integer.toString(gValue));
-        BigInteger Xa = new BigInteger(Integer.toString(XaValue));
-        BigInteger Xb = new BigInteger(Integer.toString(XbValue));
 
-        createKey();
+        /**** if the server has the initiative... ***/
+        HashMap <String, BigInteger> keys = createKeys();
+        BigInteger x = keys.get(X_SECRET);
+        BigInteger y = keys.get(Y_GENERATED);
+        BigInteger p = keys.get(P_PRIME);
+        BigInteger g = keys.get(G_BASE);
 
-        int bitLength = 512; // 512 bits
-        SecureRandom rnd = new SecureRandom();
-        p = BigInteger.probablePrime(bitLength, rnd);
-        g = BigInteger.probablePrime(bitLength, rnd);
-
-        createSpecificKey(p, g);*/
-
-        createKeys();
-    }
-
-
-    public static void createKeys() throws Exception{
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("DiffieHellman");
-
-        kpg.initialize(512);
-        KeyPair kp = kpg.generateKeyPair();
-
-        BigInteger x = ((javax.crypto.interfaces.DHPrivateKey) kp.getPrivate()).getX();
-        BigInteger y = ((javax.crypto.interfaces.DHPublicKey) kp.getPublic()).getY();
-
-        DHParameterSpec params = ((javax.crypto.interfaces.DHPublicKey) kp.getPublic()).getParams();
-        BigInteger p = params.getP();
-        BigInteger g = params.getG();
-
-        System.out.println("Prime: " + p.toString());
-        System.out.println("Base: " + g.toString());
-        System.out.println("Secret value: " + x.toString());
+        System.out.println("X: " + x.toString());
+        System.out.println("P: " + p.toString());
+        System.out.println("G: " + g.toString());
         System.out.println("Y: " + y.toString());
 
+        System.out.println("Equal to y? generated: " + g.modPow(x,p).toString());
 
-        //SUCCESS IT IT IS CORRECT
-        System.out.println(g.modPow(x,p));
+        //after the server receives the generated Y by the device he can call
+        //BigInteger sessionKey = generateSessionKey(yDevice, p, x);
 
-        byte[] xBytes = x.toByteArray();
-        byte[] yBytes = y.toByteArray();
-        byte[] pBytes = p.toByteArray();
-        byte[] gBytes = g.toByteArray();
+
+        /**** if the client has the initiative... ***/
+        //
+
     }
 
-    //generates p, q, kA
-    public static void createKey() throws Exception {
+    public static HashMap<String, BigInteger> createKeys() throws Exception{
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("DiffieHellman");
 
         kpg.initialize(512);
         KeyPair kp = kpg.generateKeyPair();
-        KeyFactory kfactory = KeyFactory.getInstance("DiffieHellman");
-
-        DHPublicKeySpec kspec = (DHPublicKeySpec) kfactory.getKeySpec(kp.getPublic(), DHPublicKeySpec.class);
-        //the secret value
-        System.out.println(kp.getPublic().toString());
 
 
-        BigInteger x = ((javax.crypto.interfaces.DHPrivateKey) kp.getPrivate()).getX();
-        System.out.println(x.toString());
+        HashMap<String, BigInteger> result = new HashMap<String, BigInteger>();
 
-        //the base b
-        System.out.println(kspec.getG().toString());
+        final BigInteger x = ((DHPrivateKey) kp.getPrivate()).getX();
+        final BigInteger y = ((DHPublicKey) kp.getPublic()).getY();
+        result.put(X_SECRET, x);
+        result.put(Y_GENERATED, y);
 
-        //the prime p
-        System.out.println(kspec.getP().toString());
+        final DHParameterSpec params = ((DHPublicKey) kp.getPublic()).getParams();
+        final BigInteger p = params.getP();
+        result.put(P_PRIME, p);
+        final BigInteger g = params.getG();
+        result.put(G_BASE, g);
 
-        //the public value y
-        System.out.println(kspec.getY().toString());
-    }
-
-    //generates yB given p and g
-    public static void createSpecificKey(BigInteger p, BigInteger g) throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("DiffieHellman");
-
-        DHParameterSpec param = new DHParameterSpec(p, g);
-        kpg.initialize(param);
-        KeyPair kp = kpg.generateKeyPair();
-
-        KeyFactory kfactory = KeyFactory.getInstance("DiffieHellman");
-
-        DHPublicKeySpec kspec = (DHPublicKeySpec) kfactory.getKeySpec(kp.getPublic(), DHPublicKeySpec.class);
+        return result;
     }
 
 
-
+    public static BigInteger generateSessionKey(BigInteger y, BigInteger p, BigInteger x){
+        return y.modPow(x, p);
+    }
 
 }
