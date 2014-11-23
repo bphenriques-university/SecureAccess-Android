@@ -6,7 +6,10 @@ import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.UUID;
+
+import sirs.ist.pt.secureaccess.security.DiffieHellman;
 
 /*
  * ConnectThread
@@ -31,6 +34,7 @@ public class SessionThread extends Thread {
         mmDevice = device;
 
         try {
+            Log.i("CONN", "Trying to create socket to service with UUID: " + MY_UUID);
             tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
         } catch (IOException e) {
             Log.e("CONN", "Couldn't create socket");
@@ -42,7 +46,7 @@ public class SessionThread extends Thread {
         mBluetoothAdapter.cancelDiscovery();
 
         try {
-            Log.i("CONN", "Connecting");
+            Log.i("CONN", "Trying to connect");
             mmSocket.connect();
             Log.i("CONN", "Connected!");
         } catch (IOException connectException) {
@@ -68,20 +72,70 @@ public class SessionThread extends Thread {
         mainCycle();
     }
 
-    public void write(byte[] bytes){
-        connectedThread.write(bytes);
-    }
 
     private void mainCycle() {
+        //connected, trying to create keys
+        DiffieHellman dh = new DiffieHellman();
+        Log.i("SESSION", "Generating DH values ");
+
+        try {
+            dh.createKeys();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        BigInteger x = dh.x_secret;
+        BigInteger y = dh.y_device;
+        BigInteger p = dh.p_prime;
+        BigInteger g = dh.g_base;
+
+        String send_public_values_DH = new String("CONN" + "#" + g.toString() + "#" + p.toString() + "#" + y.toString());
+
+        write(send_public_values_DH.getBytes());
+
+        //wait for kServer to generate values
+        String newData = new String(receive());
+
+        BigInteger serverY = parseYServer(newData);
+
+        String session_key = dh.generateSessionKey(serverY, p, x);
+        if (session_key == null){
+            Log.e("SESSION", "BAD INPUT FROM SERVER IN OBTAINING YSERVER");
+        }
+        Log.i("SESSION", "Started sessiom with key: " + session_key);
+
+        Log.i("SESSION", "End of main cycle");
+    }
+
+    private BigInteger parseYServer(String newData) {
+        String[] tokens = newData.split("#");
+
+        BigInteger anotherY = null;
+        if(tokens[0].equals("CONN-R") && tokens.length != 2){
+            return null;
+        }else{
+            anotherY = new BigInteger(tokens[1]);
+        }
+
+        return anotherY;
+    }
+
+    private void pingPongTest() {
         int counter = 0;
         while(counter != 10){
+            //connected, trying to create keys
+
             Log.i("SESSION", "Sending msg number " + counter++);
             write(new String("Ping : SEQ = " + counter).getBytes());
             Log.i("SESSION", "SERVER: " + new String(receive()));
         }
 
         Log.i("SESSION", "End of Main Cycle");
+    }
 
+
+    public void write(byte[] bytes){
+        connectedThread.write(bytes);
     }
 
     public byte[] receive(){
