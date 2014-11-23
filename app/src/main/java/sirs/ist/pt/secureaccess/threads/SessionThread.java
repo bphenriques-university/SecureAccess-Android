@@ -3,6 +3,7 @@ package sirs.ist.pt.secureaccess.threads;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.os.ParcelUuid;
 import android.util.Log;
 
 import java.io.IOException;
@@ -35,9 +36,30 @@ public class SessionThread extends Thread {
 
         try {
             Log.i("CONN", "Trying to create socket to service with UUID: " + MY_UUID);
+            ParcelUuid[] uuids = device.getUuids();
+
+
+            boolean success = false;
+            for (ParcelUuid u : uuids){
+                String uuid = u.getUuid().toString();
+                Log.i("CONN", "Available uuid: " + uuid);
+                if(uuid.equalsIgnoreCase(MY_UUID.toString())){
+                    Log.i("CONN", "Server is available in that device");
+                    success = true;
+                    break;
+                }
+            }
+
+            if(!success){
+                Log.i("CONN", "Server is NOT available in that device");
+            }
+
             tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
         } catch (IOException e) {
             Log.e("CONN", "Couldn't create socket");
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("CONN", "Couldn't create socket: " + e.toString());
         }
         mmSocket = tmp;
     }
