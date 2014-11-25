@@ -11,28 +11,28 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import sirs.ist.pt.secureaccess.ListContent.Content;
+import sirs.ist.pt.secureaccess.threads.SessionThread;
 
-
-/**
- * An activity representing a single Item detail screen. This
- * activity is only used on handset devices. On tablet-size devices,
- * item details are presented side-by-side with a list of items
- * in a {@link ItemListActivity}.
- * <p/>
- * This activity is mostly just a 'shell' activity containing nothing
- * more than a {@link ItemDetailFragment}.
- */
 public class ItemDetailActivity extends Activity {
     private Content.Item mItem;
+    private SessionThread currentSession = null;
+    private BluetoothDevice device = null;
+    TextView logTextView = null;
 
+    boolean firstItemLog = true;
 
     public void connectionOnClick(View v){
         Button b = (Button) findViewById((R.id.connectionButton));
         b.setClickable(false);
         TextView log = (TextView) findViewById(R.id.connectionTextView);
-        log.append("\nTrying to connect...");
-        Log.i("CONN", "Trying to establish connection to device");
-        BluetoothManager.connect();
+        log("Trying to establish connection ...");
+
+        try {
+            currentSession = new SessionThread(device);
+            currentSession.start();
+        }catch(Exception e){
+            this.log("Failed to start connection...");
+        }
     }
 
     @Override
@@ -50,24 +50,36 @@ public class ItemDetailActivity extends Activity {
 
         this.setTitle(mItem.name);
 
-        BluetoothDevice device = mItem.device;
-        BluetoothManager.setSelectedDevice(device);
-        TextView log = (TextView) findViewById(R.id.connectionTextView);
-        log.append("Name: " + device.getName());
-        log.append("\nMAC: " + device.getAddress());
+        device = mItem.device;
+
+        logTextView = (TextView) findViewById(R.id.connectionTextView);
+
+        log("Name: " + device.getName());
+        log("Mac address: " + device.getAddress());
+    }
+
+
+    private void log(String msg){
+        Log.i("APP:DETAIL", msg);
+        if(firstItemLog) {
+            logTextView.append(msg);
+            firstItemLog = false;
+        }else {
+            logTextView.append("\n" + msg);
+        }
+    }
+    public void disconnect(){
+        log("Disconnecting...");
+        if(currentSession != null) {
+            currentSession.cancel();
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == android.R.id.home) {
-            // This ID represents the Home or Up button. In the case of this
-            // activity, the Up button is shown. For
-            // more details, see the Navigation pattern on Android Design:
-            //
-            // http://developer.android.com/design/patterns/navigation.html#up-vs-back
-            //
-            BluetoothManager.disconnect();
+            this.disconnect();
             navigateUpTo(new Intent(this, ItemListActivity.class));
             return true;
         }
