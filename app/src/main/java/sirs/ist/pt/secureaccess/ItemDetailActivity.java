@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,7 +29,7 @@ public class ItemDetailActivity extends Activity {
         log("Trying to establish connection ...");
 
         try {
-            currentSession = new SessionThread(device);
+            currentSession = new SessionThread(device, log);
             currentSession.start();
         }catch(Exception e){
             this.log("Failed to start connection...");
@@ -53,6 +54,7 @@ public class ItemDetailActivity extends Activity {
         device = mItem.device;
 
         logTextView = (TextView) findViewById(R.id.connectionTextView);
+        logTextView.setMovementMethod(new ScrollingMovementMethod());
 
         log("Name: " + device.getName());
         log("Mac address: " + device.getAddress());

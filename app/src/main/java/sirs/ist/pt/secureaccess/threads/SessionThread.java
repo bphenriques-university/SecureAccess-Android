@@ -3,8 +3,8 @@ package sirs.ist.pt.secureaccess.threads;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.os.ParcelUuid;
 import android.util.Log;
+import android.widget.TextView;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -29,16 +29,16 @@ public class SessionThread extends Thread {
     private boolean hasReceivedNewData = false;
     private byte[] newData;
 
+    TextView logTextView = null;
 
-    public SessionThread(BluetoothDevice device) {
+    public SessionThread(BluetoothDevice device, TextView v) {
         BluetoothSocket tmp = null;
         mmDevice = device;
+        logTextView = v;
 
         try {
-            Log.i("CONN", "Trying to create socket to service with UUID: " + MY_UUID);
+            /*
             ParcelUuid[] uuids = device.getUuids();
-
-
             boolean success = false;
             for (ParcelUuid u : uuids){
                 String uuid = u.getUuid().toString();
@@ -48,41 +48,37 @@ public class SessionThread extends Thread {
                     break;
                 }
             }
+            */
 
             tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
-
         } catch (IOException e) {
-            logInfo("Couldn't create socket");
+            log("Couldn't create socket");
         }
         mmSocket = tmp;
-
     }
 
-    public void logInfo(String msg){
-        Log.i("CONN", msg);
+
+
+
+    public void log(String msg){
+        logTextView.append("\n" + msg);
+        Log.i("SESSION:CONNECTION", msg);
     }
 
     public void run() {
         mBluetoothAdapter.cancelDiscovery();
 
         try {
-            logInfo("Trying to connect");
             mmSocket.connect();
-            logInfo("Connected!");
+            log("Connected!");
         } catch (IOException connectException) {
             try {
                 mmSocket.close();
             } catch (IOException closeException) {
-                logInfo("Couldn't close socket");
+                log("Couldn't close socket");
             }
             return;
         }
-
-        // Do work to manage the connection (in a separate thread)
-        manageConnectedSocket(mmSocket);
-    }
-
-    private void manageConnectedSocket(BluetoothSocket mmSocket) {
 
         connectedThread = new ConnectedThread(mmSocket, this);
         connectedThread.start();
@@ -94,7 +90,7 @@ public class SessionThread extends Thread {
     private void mainCycle() {
         //connected, trying to create keys
         DiffieHellman dh = new DiffieHellman();
-        logInfo("Generating DH values");
+        log("Generating DH values");
 
         try {
             dh.createKeys();
@@ -116,12 +112,12 @@ public class SessionThread extends Thread {
 
         String session_key = dh.generateSessionKey(serverY, p, x);
         if (session_key == null){
-            logInfo("BAD INPUT FROM SERVER IN OBTAINING YSERVER");
+            log("BAD INPUT FROM SERVER IN OBTAINING YSERVER");
         }
 
-        logInfo("Started sessiom with key: " + session_key);
+        log("Started sessiom with key: " + session_key);
 
-        logInfo("End of main cycle");
+        log("End of main cycle");
     }
 
     private BigInteger parseYServer(String newData) {

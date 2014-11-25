@@ -8,6 +8,7 @@
         android:layout_height="460dp"
         android:id="@+id/connectionTextView"
         android:layout_gravity="center_horizontal|top"
+        android:scrollbars = "vertical"
         android:visibility="visible" />
 
     <Button
