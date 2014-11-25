@@ -2,23 +2,20 @@ package sirs.ist.pt.secureaccess;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-
-import java.util.ArrayList;
-import java.util.Set;
+import android.util.Log;
+import android.widget.TextView;
 
 import sirs.ist.pt.secureaccess.threads.SessionThread;
 
-/**
- * Created by brunophenriques on 22/11/14.
- */
 public class BluetoothManager {
-    private BluetoothDevice selectedDevice;
+    public static BluetoothDevice selectedDevice;
 
     //Period of time in which the receiver is enabled
     private static final int REQUEST_ENABLE_BT = 12;
     private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 
-    private SessionThread currentSession;
+    private static SessionThread currentSession;
+    private static TextView textview = null;
 
     public void destroy(){
         if (btAdapter != null) {
@@ -26,31 +23,28 @@ public class BluetoothManager {
         }
     }
 
-    public ArrayList<BluetoothDevice> getPairedDevices(){
 
-        ArrayList<BluetoothDevice> result = new ArrayList<BluetoothDevice>();
 
-        Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
-        if (pairedDevices.size() > 0) {
-            for (BluetoothDevice device : pairedDevices) {
-                result.add(device);
-            }
+    public static void connect(){
+        try {
+            Log.i("CONN", "Creating sessionThread...");
+            currentSession = new SessionThread(selectedDevice);
+            Log.i("CONN", "Starting connection...");
+            currentSession.start();
+        } catch (Exception e) {
+            Log.i("CONN", "Couldn't stablish connection. Reason: " + e.toString());
+            e.printStackTrace();
         }
-
-        return result;
     }
 
-    public void connect(BluetoothDevice device){
-        currentSession = new SessionThread(device);
-        currentSession.start();
+    public static void disconnect(){
+        Log.i("CONN", "Disconnecting...");
+        currentSession.cancel();
     }
 
-    public BluetoothDevice getSelectedDevice() {
-        return selectedDevice;
-    }
 
-    public void setSelectedDevice(BluetoothDevice selectedDevice) {
-        this.selectedDevice = selectedDevice;
+    public static void setSelectedDevice(BluetoothDevice device) {
+        selectedDevice = device;
     }
 
     public void sendMessage(){

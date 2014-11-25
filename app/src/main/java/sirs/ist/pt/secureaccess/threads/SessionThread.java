@@ -42,40 +42,38 @@ public class SessionThread extends Thread {
             boolean success = false;
             for (ParcelUuid u : uuids){
                 String uuid = u.getUuid().toString();
-                Log.i("CONN", "Available uuid: " + uuid);
                 if(uuid.equalsIgnoreCase(MY_UUID.toString())){
-                    Log.i("CONN", "Server is available in that device");
+                    logInfo("Server is available at that device");
                     success = true;
                     break;
                 }
             }
 
-            if(!success){
-                Log.i("CONN", "Server is NOT available in that device");
-            }
-
             tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
+
         } catch (IOException e) {
-            Log.e("CONN", "Couldn't create socket");
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.e("CONN", "Couldn't create socket: " + e.toString());
+            logInfo("Couldn't create socket");
         }
         mmSocket = tmp;
+
+    }
+
+    public void logInfo(String msg){
+        Log.i("CONN", msg);
     }
 
     public void run() {
         mBluetoothAdapter.cancelDiscovery();
 
         try {
-            Log.i("CONN", "Trying to connect");
+            logInfo("Trying to connect");
             mmSocket.connect();
-            Log.i("CONN", "Connected!");
+            logInfo("Connected!");
         } catch (IOException connectException) {
             try {
                 mmSocket.close();
             } catch (IOException closeException) {
-                Log.e("CONN", "Couldn't close socket");
+                logInfo("Couldn't close socket");
             }
             return;
         }
@@ -85,12 +83,10 @@ public class SessionThread extends Thread {
     }
 
     private void manageConnectedSocket(BluetoothSocket mmSocket) {
-        Log.i("CONN", "Creating connected Thread");
 
         connectedThread = new ConnectedThread(mmSocket, this);
         connectedThread.start();
 
-        Log.i("SESSION", "Starting main cycle");
         mainCycle();
     }
 
@@ -98,7 +94,7 @@ public class SessionThread extends Thread {
     private void mainCycle() {
         //connected, trying to create keys
         DiffieHellman dh = new DiffieHellman();
-        Log.i("SESSION", "Generating DH values ");
+        logInfo("Generating DH values");
 
         try {
             dh.createKeys();
@@ -116,17 +112,16 @@ public class SessionThread extends Thread {
         write(send_public_values_DH.getBytes());
 
         //wait for kServer to generate values
-        String newData = new String(receive());
-
-        BigInteger serverY = parseYServer(newData);
+        BigInteger serverY = parseYServer(new String(receive()));
 
         String session_key = dh.generateSessionKey(serverY, p, x);
         if (session_key == null){
-            Log.e("SESSION", "BAD INPUT FROM SERVER IN OBTAINING YSERVER");
+            logInfo("BAD INPUT FROM SERVER IN OBTAINING YSERVER");
         }
-        Log.i("SESSION", "Started sessiom with key: " + session_key);
 
-        Log.i("SESSION", "End of main cycle");
+        logInfo("Started sessiom with key: " + session_key);
+
+        logInfo("End of main cycle");
     }
 
     private BigInteger parseYServer(String newData) {

@@ -37,14 +37,13 @@ public class ConnectedThread extends Thread {
             try {
                 // Read from the InputStream
                 if(mmInStream.available() > 0) {
-                    Log.i("CONNECTION", "Receiving from socket...");
                     bytes = mmInStream.read(buffer);
                     byte[] received = Arrays.copyOf(buffer, bytes);
                     currentSession.receiveData(received);
                 }
 
             } catch (IOException e) {
-                Log.e("CONNECTION", "CANT RECEIVE BYTES");
+                logInfo("CANT RECEIVE BYTES");
                 break;
             }
         }
@@ -53,11 +52,15 @@ public class ConnectedThread extends Thread {
     /* Call this from the main activity to send data to the remote device */
     public void write(byte[] bytes) {
         try {
-            Log.i("CONNECTION", "Writing to socket...");
+
             mmOutStream.write(bytes);
         } catch (IOException e) {
-            Log.e("CONNECTION", "CANT SEND BYTES");
+            logInfo("CANT SEND BYTES");
         }
+    }
+
+    private void logInfo(String s) {
+        Log.i("CONN_LOW_LEVEL", s);
     }
 
     /* Call this from the main activity to shutdown the connection */

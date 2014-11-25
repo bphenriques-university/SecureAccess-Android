@@ -1,0 +1,21 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:id="@+id/item_detail_container"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    tools:context="sirs.ist.pt.secureaccess.ItemDetailActivity" tools:ignore="MergeRootFrame" >
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="460dp"
+        android:id="@+id/connectionTextView"
+        android:layout_gravity="center_horizontal|top"
+        android:visibility="visible" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Connect"
+        android:id="@+id/connectionButton"
+        android:layout_gravity="center_horizontal|bottom"
+        android:clickable="true"
+        android:onClick="connectionOnClick" />
+</FrameLayout>
