@@ -66,7 +66,11 @@ public class ConnectedThread extends Thread {
     /* Call this from the main activity to shutdown the connection */
     public void cancel() {
         try {
-            mmSocket.close();
-        } catch (IOException e) { }
+            if(mmSocket != null) {
+                mmSocket.close();
+            }
+        } catch (IOException e) {
+            logInfo("couldn't close socket!!!");
+        }
     }
 }

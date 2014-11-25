@@ -4,12 +4,18 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
-import android.widget.TextView;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import sirs.ist.pt.secureaccess.ItemDetailActivity;
 import sirs.ist.pt.secureaccess.security.DiffieHellman;
 
 /*
@@ -19,6 +25,7 @@ import sirs.ist.pt.secureaccess.security.DiffieHellman;
  * 
  */
 public class SessionThread extends Thread {
+    public static final int TIMEOUT_SECONDS = 5;
     private final BluetoothSocket mmSocket;
     private final BluetoothDevice mmDevice;
 
@@ -29,12 +36,13 @@ public class SessionThread extends Thread {
     private boolean hasReceivedNewData = false;
     private byte[] newData;
 
-    TextView logTextView = null;
+    ItemDetailActivity activity = null;
 
-    public SessionThread(BluetoothDevice device, TextView v) {
+
+    public SessionThread(BluetoothDevice device, ItemDetailActivity activity) {
         BluetoothSocket tmp = null;
         mmDevice = device;
-        logTextView = v;
+        this.activity = activity;
 
         try {
             /*
@@ -61,15 +69,21 @@ public class SessionThread extends Thread {
 
 
     public void log(String msg){
-        logTextView.append("\n" + msg);
-        Log.i("SESSION:CONNECTION", msg);
+        activity.log("SESSION:CONNECTION", msg);
     }
 
     public void run() {
         mBluetoothAdapter.cancelDiscovery();
 
         try {
-            mmSocket.connect();
+
+            log("Connecting...");
+
+            if(!tryConnection()){
+                log("Timeout!");
+                activity.waitingForConnect = true;
+                return;
+            }
             log("Connected!");
         } catch (IOException connectException) {
             try {
@@ -86,6 +100,40 @@ public class SessionThread extends Thread {
         mainCycle();
     }
 
+    private boolean tryConnection() throws IOException {
+
+        final Runnable stuffToDo = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    mmSocket.connect();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        final Future future = executor.submit(stuffToDo);
+        executor.shutdown(); // This does not cancel the already-scheduled task.
+        try {
+            future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException ie) {
+            /* ignore */
+        } catch (ExecutionException ee) {
+            /* ignore */
+        } catch (TimeoutException te) {
+            /* ignore */
+        }
+
+        if (!executor.isTerminated()) {
+            executor.shutdownNow(); // If you want to stop the code that hasn't finished.
+            return false;
+        }
+
+        return true;
+    }
+
 
     private void mainCycle() {
         //connected, trying to create keys
@@ -95,7 +143,9 @@ public class SessionThread extends Thread {
         try {
             dh.createKeys();
         } catch (Exception e) {
+            log("Error creating keys...");
             e.printStackTrace();
+            return;
         }
 
         BigInteger x = dh.x_secret;
@@ -103,16 +153,18 @@ public class SessionThread extends Thread {
         BigInteger p = dh.p_prime;
         BigInteger g = dh.g_base;
 
+        log("Sending DH values to server...");
         String send_public_values_DH = new String("CONN" + "#" + g.toString() + "#" + p.toString() + "#" + y.toString());
-
         write(send_public_values_DH.getBytes());
 
         //wait for kServer to generate values
+        log("Waiting for server with his public keys...");
         BigInteger serverY = parseYServer(new String(receive()));
 
         String session_key = dh.generateSessionKey(serverY, p, x);
         if (session_key == null){
             log("BAD INPUT FROM SERVER IN OBTAINING YSERVER");
+            return;
         }
 
         log("Started sessiom with key: " + session_key);
@@ -165,8 +217,16 @@ public class SessionThread extends Thread {
 
     /** Will cancel an in-progress connection, and close the socket */
     public void cancel() {
+
         try {
-            mmSocket.close();
-        } catch (IOException e) { }
+            if(connectedThread != null){
+                connectedThread.cancel();
+            }
+            if(mmSocket != null) {
+                mmSocket.close();
+            }
+        } catch (IOException e) {
+            log("UPS, error closing socket!");
+        }
     }
 }

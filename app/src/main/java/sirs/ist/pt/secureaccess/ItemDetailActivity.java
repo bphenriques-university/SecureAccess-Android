@@ -7,14 +7,15 @@ import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import sirs.ist.pt.secureaccess.ListContent.Content;
 import sirs.ist.pt.secureaccess.threads.SessionThread;
 
-public class ItemDetailActivity extends Activity {
+public class ItemDetailActivity extends Activity{
     private Content.Item mItem;
     private SessionThread currentSession = null;
     private BluetoothDevice device = null;
@@ -22,18 +23,32 @@ public class ItemDetailActivity extends Activity {
 
     boolean firstItemLog = true;
 
-    public void connectionOnClick(View v){
-        Button b = (Button) findViewById((R.id.connectionButton));
-        b.setClickable(false);
+    public boolean waitingForConnect = true;
+
+    public void connect(){
         TextView log = (TextView) findViewById(R.id.connectionTextView);
-        log("Trying to establish connection ...");
 
         try {
-            currentSession = new SessionThread(device, log);
+            currentSession = new SessionThread(device, this);
             currentSession.start();
         }catch(Exception e){
-            this.log("Failed to start connection...");
+            this.log("APP:DETAIL", "Failed to start connection...");
         }
+    }
+
+    public void log(final String id, final String msg){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Log.i(id, msg);
+                if(firstItemLog) {
+                    logTextView.append(msg);
+                    firstItemLog = false;
+                }else {
+                    logTextView.append("\n" + msg);
+                }
+            }
+        });
     }
 
     @Override
@@ -54,24 +69,31 @@ public class ItemDetailActivity extends Activity {
         device = mItem.device;
 
         logTextView = (TextView) findViewById(R.id.connectionTextView);
+
+        ScrollView mScrollView = (ScrollView) findViewById(R.id.SCROLLER_ID);
+        mScrollView.fullScroll(View.FOCUS_DOWN);
+
         logTextView.setMovementMethod(new ScrollingMovementMethod());
 
-        log("Name: " + device.getName());
-        log("Mac address: " + device.getAddress());
+        log("APP:DETAIL","Name: " + device.getName());
+        log("APP:DETAIL","Mac address: " + device.getAddress());
+        log("APP:DETAIL","        Tap screen to connect");
+
+        View myView = findViewById(R.id.item_detail_container);
+        myView.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                if(waitingForConnect) {
+                    connect();
+                }
+                waitingForConnect = false;
+                return true;
+            }
+        });
+
     }
 
-
-    private void log(String msg){
-        Log.i("APP:DETAIL", msg);
-        if(firstItemLog) {
-            logTextView.append(msg);
-            firstItemLog = false;
-        }else {
-            logTextView.append("\n" + msg);
-        }
-    }
     public void disconnect(){
-        log("Disconnecting...");
+        log("APP:DETAIL","Disconnecting...");
         if(currentSession != null) {
             currentSession.cancel();
         }
@@ -87,4 +109,5 @@ public class ItemDetailActivity extends Activity {
         }
         return super.onOptionsItemSelected(item);
     }
+
 }
