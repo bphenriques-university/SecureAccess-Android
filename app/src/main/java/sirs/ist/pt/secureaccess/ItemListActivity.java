@@ -55,18 +55,21 @@ public class ItemListActivity extends Activity
                         Content.addItem(new Content.Item(bd));
                     }
 
-                    ItemListFragment fragment = (ItemListFragment) getFragmentManager().findFragmentById(R.id.item_list);
-                    fragment.refreshList();
+                    refreshList();
                 }
                 else{
                     Content.clean();
-                    ItemListFragment fragment = (ItemListFragment) getFragmentManager().findFragmentById(R.id.item_list);
-                    fragment.refreshList();
+                    refreshList();
                 }
             }
 
         }
     };
+
+    public void refreshList(){
+        ItemListFragment fragment = (ItemListFragment) getFragmentManager().findFragmentById(R.id.item_list);
+        fragment.refreshList();
+    }
 
     public boolean isBluetoothActive(){
         if(!btAdapter.getDefaultAdapter().isEnabled()) {
@@ -102,6 +105,7 @@ public class ItemListActivity extends Activity
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
 
+        Content.clean();
         if(!this.isBluetoothActive()){
             Toast.makeText(getApplicationContext(), "Turn on Bluetooth...", Toast.LENGTH_SHORT).show();
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -111,6 +115,7 @@ public class ItemListActivity extends Activity
                 Content.addItem(new Content.Item(bd));
             }
         }
+        refreshList();
 
         if (findViewById(R.id.item_detail_container) != null) {
             // The detail container view will be present only in the
@@ -131,6 +136,7 @@ public class ItemListActivity extends Activity
 
     @Override
     public void onDestroy(){
+        super.onDestroy();
         unregisterReceiver(mReceiver);
     }
 

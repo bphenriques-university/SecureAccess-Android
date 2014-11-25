@@ -39,7 +39,9 @@ public class BluetoothManager {
 
     public static void disconnect(){
         Log.i("CONN", "Disconnecting...");
-        currentSession.cancel();
+        if(currentSession != null) {
+            currentSession.cancel();
+        }
     }
 
 

@@ -48,6 +48,8 @@ public class ItemDetailActivity extends Activity {
 
         mItem = Content.ITEM_MAP.get(id);
 
+        this.setTitle(mItem.name);
+
         BluetoothDevice device = mItem.device;
         BluetoothManager.setSelectedDevice(device);
         TextView log = (TextView) findViewById(R.id.connectionTextView);
