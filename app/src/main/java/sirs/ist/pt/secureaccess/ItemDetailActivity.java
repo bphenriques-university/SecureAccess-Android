@@ -57,8 +57,6 @@ public class ItemDetailActivity extends Activity {
         log.append("\nMAC: " + device.getAddress());
     }
 
-
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();

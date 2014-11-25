@@ -23,8 +23,6 @@ public class BluetoothManager {
         }
     }
 
-
-
     public static void connect(){
         try {
             Log.i("CONN", "Creating sessionThread...");

@@ -13,8 +13,13 @@ public class Content {
     public static Map<String, Item> ITEM_MAP = new HashMap<String, Item>();
 
     public static void clean(){
-        ITEMS = new ArrayList<Item>();
-        ITEM_MAP = new HashMap<String, Item>();
+        ITEMS.clear();
+        ITEM_MAP.clear();
+    }
+
+    public static void removeItem(Item item){
+        ITEMS.remove(item);
+        ITEM_MAP.remove(item);
     }
 
     public static void addItem(Item item) {

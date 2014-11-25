@@ -8,7 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.widget.Toast;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -47,24 +47,30 @@ public class ItemListActivity extends Activity
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive (Context context, Intent intent) {
             String action = intent.getAction();
-
             if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                 if(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1) == BluetoothAdapter.STATE_ON){
-                    //populate list
-                    for (BluetoothDevice bd : getPairedDevices()){
-                        Content.addItem(new Content.Item(bd));
-                    }
-
-                    refreshList();
+                    populateList();
                 }
                 else{
-                    Content.clean();
-                    refreshList();
+                    clearList();
                 }
+                refreshList();
             }
 
         }
     };
+
+    private void populateList() {
+        //populate list
+        for (BluetoothDevice bd : getPairedDevices()){
+            Content.addItem(new Content.Item(bd));
+        }
+    }
+
+    private void clearList() {
+        Content.clean();
+    }
+
 
     public void refreshList(){
         ItemListFragment fragment = (ItemListFragment) getFragmentManager().findFragmentById(R.id.item_list);
@@ -103,17 +109,16 @@ public class ItemListActivity extends Activity
 
         // Register the BroadcastReceiver
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_FOUND);
         registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
 
         Content.clean();
         if(!this.isBluetoothActive()){
-            Toast.makeText(getApplicationContext(), "Turn on Bluetooth...", Toast.LENGTH_SHORT).show();
+            Util.makeToast("Turning on Bluetooth...", getApplicationContext());
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }else{
-            for (BluetoothDevice bd : getPairedDevices()){
-                Content.addItem(new Content.Item(bd));
-            }
+            populateList();
         }
         refreshList();
 
