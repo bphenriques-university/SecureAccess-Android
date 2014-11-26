@@ -33,7 +33,7 @@ public class ConnectedThread extends Thread {
         byte[] buffer = new byte[1024];  // buffer store for the stream
         int bytes = 0; // bytes returned from read()
 
-        while(true){
+        while(!currentThread().isInterrupted()){
             try {
                 // Read from the InputStream
                 if(mmInStream.available() > 0) {
@@ -50,12 +50,12 @@ public class ConnectedThread extends Thread {
     }
 
     /* Call this from the main activity to send data to the remote device */
-    public void write(byte[] bytes) {
+    public void write(byte[] bytes) throws IOException{
         try {
-
             mmOutStream.write(bytes);
         } catch (IOException e) {
             logInfo("CANT SEND BYTES");
+            throw e;
         }
     }
 
