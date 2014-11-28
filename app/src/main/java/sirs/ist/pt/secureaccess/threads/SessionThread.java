@@ -4,11 +4,12 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.ParcelUuid;
-import android.util.Log;
+import android.util.Base64;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.ConnectException;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -17,7 +18,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import sirs.ist.pt.secureaccess.ItemDetailActivity;
-import sirs.ist.pt.secureaccess.security.DiffieHellman;
+import sirs.ist.pt.secureaccess.security.CipherText;
 
 /*
  * ConnectThread
@@ -78,7 +79,6 @@ public class SessionThread extends Thread {
         mBluetoothAdapter.cancelDiscovery();
 
         try {
-
             tryConnection();
 
             connectedThread = new ConnectedThread(mmSocket, this);
@@ -132,38 +132,69 @@ public class SessionThread extends Thread {
 
 
     private void mainCycle() {
-        //connected, trying to create keys
-        DiffieHellman dh = new DiffieHellman();
-        log("Generating DH values");
-
         try {
-            dh.createKeys();
+            Random random = new Random();
 
+            String key = "1234567891234567";
+            //REQUESTING CONNECTION
 
-            BigInteger x = dh.x_secret;
-            BigInteger y = dh.y_device;
-            BigInteger p = dh.p_prime;
-            BigInteger g = dh.g_base;
+            int connection_challenge = random.nextInt(Integer.MAX_VALUE);
+            String conn_request = "CONN#" + connection_challenge;
+            log("[ME]: " + conn_request);
+            write(CipherText.encrypt(conn_request, key.getBytes()).getBytes());
 
-            log("Sending DH values to server...");
-            String send_public_values_DH = new String("CONN" + "#" + g.toString() + "#" + p.toString() + "#" + y.toString());
-            write(send_public_values_DH.getBytes());
+            //WAITING FOR SERVER REPLY
+            log("Waiting for server response...");
+            String connection_response = CipherText.decrypt(new String(receive()), key.getBytes());
+            log("[SERVER]: " + connection_response);
 
-            //wait for kServer to generate values
-            log("Waiting for server with his public keys...");
-            BigInteger serverY = parseYServer(new String(receive()));
+            String[] tokens = connection_response.split("#");
+            byte[] session_key = null;
+            int device_challenge = 0;
 
-            String session_key = dh.generateSessionKey(serverY, p, x);
-            if (session_key == null){
-                log("BAD INPUT FROM SERVER IN OBTAINING YSERVER");
-                return;
+            //CONN_RESPONSE # KEY # CHALLENGE_RESPONSE # NEW_CHALLENGE
+            if(tokens.length == 4 && tokens[0].equals("CONN_RESPONSE")){
+                session_key = Base64.decode(tokens[1], Base64.DEFAULT);
+                int challenge_response = Integer.parseInt(tokens[2]);
+                if(challenge_response != connection_challenge - 1){
+                    throw new Exception("Server has failed this city");
+                }
+                device_challenge = Integer.parseInt(tokens[3]);
+                device_challenge--;
+            }else{
+                throw new Exception("Bad server response");
             }
 
-            log("Started sessiom with key: " + session_key);
+            String response = String.valueOf(device_challenge);
+            log("[ME]: Session key from server: " + session_key);
+            //answering server challenge
+            write(CipherText.encrypt(response, session_key).getBytes());
+
+            log("Started session with key: " + session_key);
+
+            while(!isInterrupted()){
+                //EXPECTING PING REQUEST
+                String ping_req = CipherText.decrypt(new String(receive()), session_key);
+                log("[SERVER]: " + ping_req);
+
+                //ANSWERING SERVER PING
+                int ping_number = -1;
+                tokens = ping_req.split("#");
+                if(tokens.length == 2 && tokens[0].equals("PING_REQ")){
+                    ping_number = Integer.parseInt(tokens[1]);
+                }else{
+                    throw new Exception("Bad server response");
+                }
+
+                String ping_response = "PING_RES#" + (ping_number-1);
+                log("[DEVICE]: " + ping_response);
+                write(CipherText.encrypt(ping_response, session_key).getBytes());
+            }
 
         } catch (Exception e) {
-            log("Error in connection...");
+            log("Error during connection: " + e.getLocalizedMessage());
             e.printStackTrace();
+            activity.waitingForConnect = true;
             return;
         }
         log("End of main cycle");
@@ -181,24 +212,6 @@ public class SessionThread extends Thread {
 
         return anotherY;
     }
-
-    private void pingPongTest() {
-        try {
-            int counter = 0;
-            while (counter != 10) {
-                //connected, trying to create keys
-
-                Log.i("SESSION", "Sending msg number " + counter++);
-                write(new String("Ping : SEQ = " + counter).getBytes());
-                Log.i("SESSION", "SERVER: " + new String(receive()));
-            }
-        }catch(IOException e){
-            log("Error connecting to socket");
-        }
-
-        Log.i("SESSION", "End of Main Cycle");
-    }
-
 
     public void write(byte[] bytes) throws IOException {
         if(connectedThread != null) {
