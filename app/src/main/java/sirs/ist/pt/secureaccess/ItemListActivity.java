@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Set;
 
 import sirs.ist.pt.secureaccess.ListContent.Content;
+import sirs.ist.pt.secureaccess.ListContent.DatabaseHandler;
+import sirs.ist.pt.secureaccess.ListContent.Server;
 
 
 /**
@@ -102,6 +104,47 @@ public class ItemListActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_list);
 
+        DatabaseHandler db = new DatabaseHandler(this);
+
+        /**
+         * CRUD Operations
+         * */
+        // Inserting Contacts
+        Log.d("Insert: ", "Inserting ..");
+        db.addServer(new Server("00:FF", "asdiasdjiasdjs"));
+        db.addServer(new Server("99:FB", "DSDCfSewqe123"));
+
+        Server s = db.getSharedKey("00:FF");
+        if(s == null){
+            Log.d("Getting:", "Server not configured in this device");
+        }else{
+            Log.d("Getting: ", s.getKey());
+        }
+        Log.d("Deleting: ", s.getKey());
+        db.deleteServer(new Server("00:FF", null));
+
+
+        s = db.getSharedKey("00:FF");
+        if(s == null){
+            Log.d("Getting:", "Server not configured in this device");
+        }else{
+            Log.d("Getting: ", s.getKey());
+        }
+        s = db.getSharedKey("99:FB");
+        if(s == null){
+            Log.d("Getting:", "Server not configured in this device");
+        }else{
+            Log.d("Getting: ", s.getKey());
+        }
+
+        Log.i("Updating", "Updating 99:FB");
+        db.updateServer(new Server("99:FB", "1233456"));
+        s = db.getSharedKey("99:FB");
+        if(s == null){
+            Log.d("Getting:", "Server not configured in this device");
+        }else{
+            Log.d("Getting: ", s.getKey());
+        }
         if(!deviceSupportsBluetooth()){
             Util.makeToast("Device doesn't support bluetooth... quitting", getApplicationContext());
             return;
