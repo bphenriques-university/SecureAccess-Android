@@ -12,7 +12,6 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.EditText;
-import android.widget.ListView;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -22,27 +21,15 @@ import sirs.ist.pt.secureaccess.ListContent.DatabaseHandler;
 import sirs.ist.pt.secureaccess.ListContent.Server;
 
 
-/**
- * An activity representing a list of Items. This activity
- * has different presentations for handset and tablet-size devices. On
- * handsets, the activity presents a list of items, which when touched,
- * lead to a {@link ItemDetailActivity} representing
- * item details. On tablets, the activity presents the list of items and
- * item details side-by-side using two vertical panes.
- * <p/>
- * The activity makes heavy use of fragments. The list of items is a
- * {@link ItemListFragment} and the item details
- * (if present) is a {@link ItemDetailFragment}.
- * <p/>
- * This activity also implements the required
- * {@link ItemListFragment.Callbacks} interface
- * to listen for item selections.
- */
 public class ItemListActivity extends Activity
         implements ItemListFragment.Callbacks {
 
     private static final int REQUEST_ENABLE_BT = 12;
     private boolean mTwoPane = false;
+
+    //derp derp derp
+    private String current_mac_address_for_qr_code = null;
+
 
     private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -108,52 +95,6 @@ public class ItemListActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_list);
 
-        DatabaseHandler db = new DatabaseHandler(this);
-
-        /**
-         * CRUD Operations
-         * */
-        // Inserting Contacts
-        Log.d("Insert: ", "Inserting ..");
-        db.addServer(new Server("00:FF", "asdiasdjiasdjs"));
-        db.addServer(new Server("99:FB", "DSDCfSewqe123"));
-
-        Server s = db.getSharedKey("00:FF");
-        if(s == null){
-            Log.d("Getting:", "Server not configured in this device");
-        }else{
-            Log.d("Getting: ", s.getKey());
-        }
-        Log.d("Deleting: ", s.getKey());
-        db.deleteServer(new Server("00:FF", null));
-
-
-        s = db.getSharedKey("00:FF");
-        if(s == null){
-            Log.d("Getting:", "Server not configured in this device");
-        }else{
-            Log.d("Getting: ", s.getKey());
-        }
-        s = db.getSharedKey("99:FB");
-        if(s == null){
-            Log.d("Getting:", "Server not configured in this device");
-        }else{
-            Log.d("Getting: ", s.getKey());
-        }
-
-        Log.i("Updating", "Updating 99:FB");
-        db.updateServer(new Server("99:FB", "1233456"));
-        s = db.getSharedKey("99:FB");
-        if(s == null){
-            Log.d("Getting:", "Server not configured in this device");
-        }else{
-            Log.d("Getting: ", s.getKey());
-        }
-
-
-
-
-
         if(!deviceSupportsBluetooth()){
             Util.makeToast("Device doesn't support bluetooth... quitting", getApplicationContext());
             return;
@@ -213,46 +154,78 @@ public class ItemListActivity extends Activity
         if(s == null){
             Log.d("##DIALOG##", "Server not configured in this device");
 
-            AlertDialog.Builder alert = new AlertDialog.Builder(this);
-
-            alert.setTitle("Computer not configured");
-            alert.setMessage("Please enter the displayed key: ");
-
-            // Set an EditText view to get user input
-            final EditText input = new EditText(this);
-            alert.setView(input);
-
-            final Activity this_activity = this;
-
-            alert.setPositiveButton("Done", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    Log.d("CONFIGURE SERVER", "MAC: " + mac_addr + " KEY: " + input.getText().toString());
-                    DatabaseHandler db = new DatabaseHandler(this_activity);
-                    db.addServer(new Server(mac_addr, input.getText().toString()));
-                    Util.makeToast("Configuration complete!", getApplicationContext());
-                }
-            });
-
-            alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    Log.d("CONFIGURE SERVER", "CANCELLED");
-                    Util.makeToast("Configuration cancelled!", getApplicationContext());
-                }
-            });
-
-            alert.setNeutralButton("QR-CODE", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    Log.d("CONFIGURE SERVER", "NEUTRAL");
-                }
-            });
-
-            alert.show();
+            createConfigureDialog(mac_addr, "");
 
         }else{
             Log.d("Getting: ", s.getKey());
             Intent intent = new Intent(this, ItemDetailActivity.class);
             intent.putExtra("DEVICE_ID", id);
             startActivity(intent);
+        }
+    }
+
+    public void createConfigureDialog(final String mac_addr, final String key){
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+        alert.setTitle("Computer not configured");
+        alert.setMessage("Please enter the key: ");
+
+        // Set an EditText view to get user input
+        final EditText input = new EditText(this);
+        alert.setView(input);
+        input.setText(key); //null if it doesn't come from qrcode
+
+        final Activity this_activity = this;
+
+        alert.setPositiveButton("Done", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                Log.d("CONFIGURE SERVER", "MAC: " + mac_addr + " KEY: " + input.getText().toString());
+                DatabaseHandler db = new DatabaseHandler(this_activity);
+                db.addServer(new Server(mac_addr, input.getText().toString()));
+                Util.makeToast("Configuration complete!", getApplicationContext());
+            }
+        });
+
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                Log.d("CONFIGURE SERVER", "CANCELLED");
+                Util.makeToast("Configuration cancelled!", getApplicationContext());
+            }
+        });
+
+        alert.setNeutralButton("QR-Code", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                Log.d("CONFIGURE SERVER", "QR-CODE");
+
+                Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+                intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
+                Log.i("QR-CODE ANALYSER", "GETTING CODE FOR MAC: " + mac_addr);
+                current_mac_address_for_qr_code = mac_addr;
+                startActivityForResult(intent, 0);
+            }
+        });
+
+        alert.show();
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (requestCode == 0) {
+            if (resultCode == RESULT_OK) {
+
+                String key = intent.getStringExtra("SCAN_RESULT");
+
+                Log.i("onQRCodeResult", "MAC_ADDR: " + current_mac_address_for_qr_code);
+
+                createConfigureDialog(current_mac_address_for_qr_code, key);
+
+                Log.i("AppON ACTIVITY RESULT", key);
+                // Handle successful scan
+
+            } else if (resultCode == RESULT_CANCELED) {
+                // Handle cancel
+                Log.i("App", "Scan unsuccessful");
+                createConfigureDialog(current_mac_address_for_qr_code, "");
+            }
         }
     }
 
