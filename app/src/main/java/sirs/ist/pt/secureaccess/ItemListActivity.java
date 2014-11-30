@@ -1,14 +1,18 @@
 package sirs.ist.pt.secureaccess;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.EditText;
+import android.widget.ListView;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -145,6 +149,11 @@ public class ItemListActivity extends Activity
         }else{
             Log.d("Getting: ", s.getKey());
         }
+
+
+
+
+
         if(!deviceSupportsBluetooth()){
             Util.makeToast("Device doesn't support bluetooth... quitting", getApplicationContext());
             return;
@@ -194,11 +203,92 @@ public class ItemListActivity extends Activity
      */
     @Override
     public void onItemSelected(String id) {
-
-        Intent intent = new Intent(this, ItemDetailActivity.class);
-
         String deviceId = id;
-        intent.putExtra("DEVICE_ID", id);
-        startActivity(intent);
+
+        Content.Item mItem = Content.ITEM_MAP.get(id);
+        final String mac_addr = mItem.macAddr;
+
+        DatabaseHandler db = new DatabaseHandler(this);
+        Server s = db.getSharedKey(mac_addr);
+        if(s == null){
+            Log.d("##DIALOG##", "Server not configured in this device");
+
+            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+            alert.setTitle("Computer not configured");
+            alert.setMessage("Please enter the displayed key: ");
+
+            // Set an EditText view to get user input
+            final EditText input = new EditText(this);
+            alert.setView(input);
+
+            final Activity this_activity = this;
+
+            alert.setPositiveButton("Done", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    Log.d("CONFIGURE SERVER", "MAC: " + mac_addr + " KEY: " + input.getText().toString());
+                    DatabaseHandler db = new DatabaseHandler(this_activity);
+                    db.addServer(new Server(mac_addr, input.getText().toString()));
+                    Util.makeToast("Configuration complete!", getApplicationContext());
+                }
+            });
+
+            alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    Log.d("CONFIGURE SERVER", "CANCELLED");
+                    Util.makeToast("Configuration cancelled!", getApplicationContext());
+                }
+            });
+
+            alert.setNeutralButton("QR-CODE", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    Log.d("CONFIGURE SERVER", "NEUTRAL");
+                }
+            });
+
+            alert.show();
+
+        }else{
+            Log.d("Getting: ", s.getKey());
+            Intent intent = new Intent(this, ItemDetailActivity.class);
+            intent.putExtra("DEVICE_ID", id);
+            startActivity(intent);
+        }
     }
+
+
+    public void onItemSelectedLongClick(String id, final String mac_addr){
+        Log.d("LONG_CLICK", id + " and mac " + mac_addr);
+
+        DatabaseHandler db = new DatabaseHandler(this);
+        Server s = db.getSharedKey(mac_addr);
+        if(s == null){
+            Util.makeToast("Server not configured yet", getApplicationContext());
+        }else{
+            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+            alert.setTitle(id);
+            alert.setMessage("Do you want to delete?");
+
+            final Activity this_activity = this;
+            alert.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    Log.d("LONG_CLICK SERVER", "DELETE");
+                    DatabaseHandler db = new DatabaseHandler(this_activity);
+                    db.deleteServer(new Server(mac_addr, "dummykey"));
+                    Util.makeToast("Deleted configuration", getApplicationContext());
+                }
+            });
+
+            alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    Log.d("LONG_CLICK SERVER", "DELETE");
+                    Util.makeToast("Cancelled", getApplicationContext());
+                }
+            });
+
+            alert.show();
+        }
+    }
+
 }

@@ -3,7 +3,9 @@ package sirs.ist.pt.secureaccess;
 import android.app.Activity;
 import android.app.ListFragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -19,6 +21,7 @@ import sirs.ist.pt.secureaccess.ListContent.Content;
  * interface.
  */
 public class ItemListFragment extends ListFragment {
+
 
     /**
      * The serialization (saved instance state) Bundle key representing the
@@ -47,6 +50,7 @@ public class ItemListFragment extends ListFragment {
          * Callback for when an item has been selected.
          */
         public void onItemSelected(String id);
+        public void onItemSelectedLongClick(String id, String mac_addr);
     }
 
     /**
@@ -56,6 +60,8 @@ public class ItemListFragment extends ListFragment {
     private static Callbacks sDummyCallbacks = new Callbacks() {
         @Override
         public void onItemSelected(String id) { }
+
+        public void onItemSelectedLongClick(String id, String mac_addr) { }
     };
 
     public ItemListFragment() { }
@@ -66,6 +72,13 @@ public class ItemListFragment extends ListFragment {
         super.onCreate(savedInstanceState);
         refreshList();
     }
+
+    protected boolean onLongListItemClick(View v, int pos, long id) {
+        mCallbacks.onItemSelectedLongClick(Content.ITEMS.get(pos).name, Content.ITEMS.get(pos).macAddr);
+        return true;
+    }
+
+
 
     public void refreshList(){
         setListAdapter(new ArrayAdapter<Content.Item>(
@@ -84,6 +97,14 @@ public class ItemListFragment extends ListFragment {
                 && savedInstanceState.containsKey(STATE_ACTIVATED_POSITION)) {
             setActivatedPosition(savedInstanceState.getInt(STATE_ACTIVATED_POSITION));
         }
+
+        ListView lv = getListView();
+        lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> av, View v, int pos, long id) {
+                return onLongListItemClick(v,pos,id);
+            }
+        });
     }
 
     @Override
@@ -107,13 +128,18 @@ public class ItemListFragment extends ListFragment {
     }
 
     @Override
-    public void onListItemClick(ListView listView, View view, int position, long id) {
+     public void onListItemClick(ListView listView, View view, int position, long id) {
         super.onListItemClick(listView, view, position, id);
 
         // Notify the active callbacks interface (the activity, if the
         // fragment is attached to one) that an item has been selected.
         mCallbacks.onItemSelected(Content.ITEMS.get(position).name);
     }
+
+
+
+
+
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -145,4 +171,7 @@ public class ItemListFragment extends ListFragment {
 
         mActivatedPosition = position;
     }
+
+
+
 }

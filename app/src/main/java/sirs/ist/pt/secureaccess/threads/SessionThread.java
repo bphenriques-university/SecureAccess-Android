@@ -18,6 +18,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import sirs.ist.pt.secureaccess.ItemDetailActivity;
+import sirs.ist.pt.secureaccess.ListContent.DatabaseHandler;
+import sirs.ist.pt.secureaccess.ListContent.Server;
 import sirs.ist.pt.secureaccess.security.CipherText;
 
 /*
@@ -79,6 +81,7 @@ public class SessionThread extends Thread {
         mBluetoothAdapter.cancelDiscovery();
 
         try {
+
             tryConnection();
 
             connectedThread = new ConnectedThread(mmSocket, this);
@@ -135,7 +138,18 @@ public class SessionThread extends Thread {
         try {
             Random random = new Random();
 
-            String key = "1234567891234567";
+            String key = null;
+
+            DatabaseHandler db = new DatabaseHandler(activity);
+            Server s = db.getSharedKey(mmDevice.getAddress());
+            if(s == null){
+                log("trying to use server not known!");
+            }else{
+                log("Server key is ... " + s.getKey());
+                key = s.getKey();
+            }
+
+
             //REQUESTING CONNECTION
 
             int connection_challenge = random.nextInt(Integer.MAX_VALUE);

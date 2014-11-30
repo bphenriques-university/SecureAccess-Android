@@ -68,11 +68,12 @@ public class ItemDetailActivity extends Activity{
 
         device = mItem.device;
 
+
+
         logTextView = (TextView) findViewById(R.id.connectionTextView);
 
         ScrollView mScrollView = (ScrollView) findViewById(R.id.SCROLLER_ID);
         mScrollView.fullScroll(View.FOCUS_DOWN);
-
         logTextView.setMovementMethod(new ScrollingMovementMethod());
 
         log("APP:DETAIL","Name: " + device.getName());
