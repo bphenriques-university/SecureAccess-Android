@@ -1,6 +1,15 @@
+#!/usr/bin/python
 from subprocess import call
 
 def changeUsr(newUsr):
+
+    '''
+        Change the file used to view the allowed websites.
+        It should be the one containing the allowed websites for the
+        newUsr.
+        teste should be used if no user is logged in.
+    '''
+
     file = open('/etc/squid3/squid.conf.backup', 'r')
     file_w = open('/etc/squid3/squid.conf', 'w')
     lines = file.readlines()
