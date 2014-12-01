@@ -145,21 +145,21 @@ public class SessionThread extends Thread {
             if(s == null){
                 log("trying to use server not known!");
             }else{
-                log("Server key is ... " + s.getKey());
+                log("SERVER KEY: " + s.getKey());
                 key = s.getKey();
             }
-
+            byte[] key_bytes = Base64.decode(key.getBytes(), Base64.DEFAULT);
 
             //REQUESTING CONNECTION
 
             int connection_challenge = random.nextInt(Integer.MAX_VALUE);
             String conn_request = "CONN#" + connection_challenge;
             log("[ME]: " + conn_request);
-            write(CipherText.encrypt(conn_request, key.getBytes()).getBytes());
+            write(CipherText.encrypt(conn_request, key_bytes).getBytes());
 
             //WAITING FOR SERVER REPLY
             log("Waiting for server response...");
-            String connection_response = CipherText.decrypt(new String(receive()), key.getBytes());
+            String connection_response = CipherText.decrypt(new String(receive()), key_bytes);
             log("[SERVER]: " + connection_response);
 
             String[] tokens = connection_response.split("#");
