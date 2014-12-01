@@ -203,6 +203,8 @@ public class SessionThread extends Thread {
                 String ping_response = "PING_RES#" + (ping_number-1);
                 log("[DEVICE]: " + ping_response);
                 write(CipherText.encrypt(ping_response, session_key).getBytes());
+
+                wait_for_ping_req();
             }
 
         } catch (Exception e) {
@@ -212,6 +214,18 @@ public class SessionThread extends Thread {
             return;
         }
         log("End of main cycle");
+    }
+
+    private void wait_for_ping_req() {
+        try {
+            log("Sleeping until check for ping-request");
+            connectedThread.sleep(4500);
+            sleep(4500);
+            log("woke up!");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            log("INTERRUPTED THREAD EXCEPTION");
+        }
     }
 
     private BigInteger parseYServer(String newData) {
