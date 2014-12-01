@@ -9,6 +9,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.EditText;
@@ -197,11 +199,21 @@ public class ItemListActivity extends Activity
             public void onClick(DialogInterface dialog, int whichButton) {
                 Log.d("CONFIGURE SERVER", "QR-CODE");
 
-                Intent intent = new Intent("com.google.zxing.client.android.SCAN");
-                intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
-                Log.i("QR-CODE ANALYSER", "GETTING CODE FOR MAC: " + mac_addr);
-                current_mac_address_for_qr_code = mac_addr;
-                startActivityForResult(intent, 0);
+
+                boolean isZxingInstalled = false;
+                try{
+                    ApplicationInfo info = getPackageManager().getApplicationInfo("com.google.zxing.client.android", 0 );
+                    Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+                    intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
+                    Log.i("QR-CODE ANALYSER", "GETTING CODE FOR MAC: " + mac_addr);
+                    current_mac_address_for_qr_code = mac_addr;
+                    startActivityForResult(intent, 0);
+                }
+                catch(PackageManager.NameNotFoundException e){
+                    Util.makeToast("QR-Code reader not found (zxing/qr droid)", getApplicationContext());
+
+                }
+
             }
         });
 
