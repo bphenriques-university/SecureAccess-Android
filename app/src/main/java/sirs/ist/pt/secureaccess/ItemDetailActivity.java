@@ -96,8 +96,8 @@ public class ItemDetailActivity extends Activity{
     public void disconnect(){
         log("APP:DETAIL","Disconnecting...");
         if(currentSession != null) {
-            currentSession.interrupt();
             currentSession.cancel();
+            currentSession.interrupt();
         }
     }
 

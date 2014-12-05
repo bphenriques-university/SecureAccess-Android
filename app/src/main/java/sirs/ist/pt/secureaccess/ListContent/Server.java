@@ -1,8 +1,5 @@
 package sirs.ist.pt.secureaccess.ListContent;
 
-/**
- * Created by brunophenriques on 29/11/14.
- */
 public class Server {
     String mac = null;
     String key = null;

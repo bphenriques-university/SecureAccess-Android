@@ -5,14 +5,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by brunophenriques on 29/11/14.
- */
 public class DatabaseHandler extends SQLiteOpenHelper {
 
     // Database Version
@@ -80,7 +76,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             } while (cursor.moveToNext());
         }
 
-        Log.e("CENAAAAS", "serverListSIze: " + serverList.size());
         for (Server server : serverList) {
             if (server.getMac().equals(mac)) {
                 return server;
