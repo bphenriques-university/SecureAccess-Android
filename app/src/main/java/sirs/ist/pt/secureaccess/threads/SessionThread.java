@@ -3,7 +3,6 @@ package sirs.ist.pt.secureaccess.threads;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.os.ParcelUuid;
 import android.util.Base64;
 
 import java.io.IOException;
@@ -50,19 +49,6 @@ public class SessionThread extends Thread {
         this.activity = activity;
 
         try {
-
-            ParcelUuid[] uuids = device.getUuids();
-            boolean success = false;
-            for (ParcelUuid u : uuids){
-                String uuid = u.getUuid().toString();
-                if(uuid.equalsIgnoreCase(MY_UUID.toString())){
-                    log("Server is available at that device");
-                    success = true;
-                    break;
-                }
-            }
-
-
             tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
         } catch (IOException e) {
             log("Couldn't create socket");
@@ -187,20 +173,31 @@ public class SessionThread extends Thread {
             log("Started session with key: " + session_key);
 
             while(!isInterrupted()){
-                //EXPECTING PING REQUEST
+
+                //send heartbeat and challenge n1
+                int alive_challenge = random.nextInt(Integer.MAX_VALUE);
+                String alive_send = "I_AM_ALIVE#" + alive_challenge;
+                log("[DEVICE]: " + alive_send);
+                write(CipherText.encrypt(alive_send, session_key).getBytes());
+
+                //EXPECTING ALIVE ANSWER with answer n1-1 and new challenge n2
                 String ping_req = CipherText.decrypt(new String(receive()), session_key);
                 log("[SERVER]: " + ping_req);
 
-                //ANSWERING SERVER PING
                 int ping_number = -1;
                 tokens = ping_req.split("#");
-                if(tokens.length == 2 && tokens[0].equals("PING_REQ")){
+                if(tokens.length == 2){
+                    int alive_challenge_response = Integer.parseInt(tokens[0]);
+                    if (alive_challenge_response != (alive_challenge - 1)){
+                        throw new Exception("Not the server i am talking too, replay attack");
+                    }
                     ping_number = Integer.parseInt(tokens[1]);
                 }else{
                     throw new Exception("Bad server response");
                 }
 
-                String ping_response = "PING_RES#" + (ping_number-1);
+                //ANSWERING SERVER PING
+                String ping_response = Integer.toString(ping_number-1);
                 log("[DEVICE]: " + ping_response);
                 write(CipherText.encrypt(ping_response, session_key).getBytes());
 
@@ -219,8 +216,7 @@ public class SessionThread extends Thread {
     private void wait_for_ping_req() {
         try {
             log("Sleeping until check for ping-request");
-            connectedThread.sleep(4500);
-            sleep(4500);
+            connectedThread.sleep(4000);
             log("woke up!");
         } catch (InterruptedException e) {
             e.printStackTrace();
