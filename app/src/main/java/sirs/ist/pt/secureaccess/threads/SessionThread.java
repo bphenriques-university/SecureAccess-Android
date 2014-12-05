@@ -153,7 +153,7 @@ public class SessionThread extends Thread {
             int device_challenge = 0;
 
             //CONN_RESPONSE # KEY # CHALLENGE_RESPONSE # NEW_CHALLENGE
-            if(tokens.length == 4 && tokens[0].equals("CONN_RESPONSE")){
+            if(tokens.length == 4 && tokens[0].equals("CONN_R")){
                 session_key = Base64.decode(tokens[1], Base64.DEFAULT);
                 int challenge_response = Integer.parseInt(tokens[2]);
                 if(challenge_response != connection_challenge - 1){
@@ -176,7 +176,8 @@ public class SessionThread extends Thread {
 
                 //send heartbeat and challenge n1
                 int alive_challenge = random.nextInt(Integer.MAX_VALUE);
-                String alive_send = "I_AM_ALIVE#" + alive_challenge;
+
+                String alive_send = "ALIV#" + alive_challenge;
                 log("[DEVICE]: " + alive_send);
                 write(CipherText.encrypt(alive_send, session_key).getBytes());
 
